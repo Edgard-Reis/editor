@@ -1,0 +1,49 @@
+{
+  "episodio": "EP-XX",
+  "formato": "9:16",
+  "resolucao": [1080, 1920],
+  "fps": 30,
+  "fonte_video": "media/base.mp4",
+  "fonte_palavras": "media/palavras_saida.json",
+  "estilo": {
+    "paleta": {
+      "destaque": "#004aad",
+      "secundaria": "#8e7de5",
+      "ciano": "#2f97d4",
+      "texto_base": "#ffffff",
+      "sombra": "rgba(0, 0, 0, 0.85)"
+    },
+    "legendas": {
+      "posicao_y": 1020,
+      "tamanho_fonte": 54,
+      "peso": 800,
+      "modo": "palavra_por_palavra",
+      "max_palavras_linha": 4
+    },
+    "zona_superior": {
+      "altura": 920,
+      "margem": 32
+    },
+    "zona_inferior": {
+      "topo": 960,
+      "altura": 960,
+      "crop_rosto": {"cx": 980, "cy": 420, "w": 1080, "h": 1080}
+    }
+  },
+  "cortes": [
+    {
+      "id": 1,
+      "arquivo": "EPXX_corte_01_tema.mp4",
+      "tema": "Título do Corte 01",
+      "inicio": 0.0,
+      "fim": 30.0,
+      "duracao": 30.0,
+      "gancho": "Frase de alto impacto do gancho",
+      "headline_topo": "HEADLINE PRINCIPAL",
+      "badge": "BADGE EDITORIAL",
+      "elementos_motion": [
+        {"tipo": "card_flutuante", "t": 5.0, "titulo": "Título do Card", "sub": "Subtítulo explicativo"}
+      ]
+    }
+  ]
+}

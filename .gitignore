@@ -1,0 +1,54 @@
+# ============================================================
+# Drifit Editor — .gitignore (raiz)
+# Versiona CÓDIGO, CONFIG e DOCS. Nunca chaves nem mídia pesada.
+# ============================================================
+
+# --- Segredos (uma única fonte: /.env na raiz) ---
+.env
+.env.local
+.env.*
+!.env.exemplo
+
+# --- Ambientes, cache e lixo de sistema ---
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.cache/
+.cache/huggingface/
+.pytest_cache/
+.mypy_cache/
+.DS_Store
+Thumbs.db
+
+# --- Segredos e estado local do agente ---
+.claude/settings.local.json
+
+# --- Mídia de produção (pesada e regenerável) ---
+# Áudio/vídeo nunca entram no repositório.
+*.mp4
+*.mov
+*.mkv
+*.avi
+*.webm
+*.wav
+*.m4a
+*.aac
+*.flac
+
+# --- Pastas inteiras de mídia/renders (independente da extensão) ---
+EP-00/
+projetos/EP-00/
+arquivo/
+projetos/*/episodios/*/brutos/
+projetos/*/episodios/*/renders/
+projetos/*/episodios/*/workspace/media/
+projetos/*/episodios/*/workspace/midia/
+projetos/*/episodios/*/workspace/renders/
+projetos/*/episodios/*/workspace/snap/
+projetos/*/episodios/*/workspace/snap_logos/
+projetos/*/episodios/*/workspace/fonts/
+
+# --- Estado do HyperFrames (gerado a cada render) ---
+.hyperframes/
+**/hyperframes-extract-cache-*/

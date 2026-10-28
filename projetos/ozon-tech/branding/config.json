@@ -1,0 +1,45 @@
+{
+  "webcam": null,
+  "fundo_gravacao": "#0a0a0a",
+  "trechos_tela": null,
+  "rosto": [
+    960,
+    420
+  ],
+  "marca": {
+    "destaque": "#00d2ff",
+    "secundaria": "#3a86ff",
+    "ciano": "#00f0ff",
+    "fundo_card": "rgba(15, 23, 42, 0.85)",
+    "fonte": "Inter"
+  },
+  "preferencias_edicao": {
+    "canal": "Ozon Tech",
+    "apresentador": "Equipe Ozon",
+    "credencial_oficial": "Ozon Tech · Inovação & Tecnologia",
+    "trilha_sonora": false,
+    "broll": {
+      "modo_padrao": "tela_cheia",
+      "nunca_sobrepor_rosto": true,
+      "ken_burns": 1.06,
+      "rotulo_rodape": true
+    },
+    "cards": {
+      "alternar_lados": true,
+      "pos_esquerda": {
+        "x": 100,
+        "y": 320,
+        "lado": "esq"
+      },
+      "pos_direita": {
+        "x": 1220,
+        "y": 320,
+        "lado": "dir"
+      },
+      "respeitar_rosto": true,
+      "largura_maxima_lower_third": 1150
+    },
+    "logos_oficiais": {}
+  },
+  "_ajuda": "Configurações padrão de Identidade Visual da Ozon Tech. Novos episódios criados para a Ozon herdam automaticamente essas preferências."
+}
