@@ -186,20 +186,19 @@ já existe (mesmo código de "sucesso").
 
 ---
 
-## 🔵 MELHORIAS
+## 🔵 MELHORIAS — ✅ RESOLVIDAS (Fase 4, 28/10/2026)
 
-13. **Zero testes automatizados.** Os `test_*.py` são verificações visuais avulsas.
-    Um teste de 10 linhas para `W()` + `encoding` pegaria o item 1 sozinho.
-14. **README desatualizado.** Não menciona `EP-00\`, `Identidade visual\`,
-    `projetos\EP-00\`, `.agents/skills/dr-gestao/`, nem o pipeline real
-    `transcrever → cortar → build → render_rapido` (só no `SKILL.md`).
-15. **`.cache/huggingface` dentro do projeto** (GB de modelo Whisper misturado
-    com código) — melhor em `%LOCALAPPDATA%`.
-16. **Docs duplicados:** `vortex-edicao/SKILL.md` ↔ `guia/MELHORIA.md` (mesmo
-    fluxo) e `.agents/skills/dr-gestao/SKILL.md` ↔ `branding/PREFERENCIAS.md`.
-17. **Menores:** `_durwav()` reabre o `.wav` a cada `sfx()`; `json.dump(open(...))`
-    sem `with` em vários pontos; `criar_projeto.py` não cria `referencias/` e
-    `scripts/`.
+13. **Zero testes automatizados.** ✅ `vortex-edicao/tests/` criado (sem pytest):
+    `test_encoding.py` + `test_build_w.py` (extrai `W()` via AST) + `run_all.py`. 14/14, exit 0.
+14. **README desatualizado.** ✅ `README.md` raiz e `vortex-edicao/README.md` reescritos:
+    árvore real, pipeline `transcrever → cortar → build → render_rapido`, `media/` unificado, testes.
+15. **`.cache/huggingface` dentro do projeto.** ✅ Movido (1.5 GB) para
+    `%LOCALAPPDATA%\huggingface`; `CACHE_HF` platform-aware (respeita `HF_HOME`); testado sem re-download.
+16. **Docs duplicados.** ✅ `vortex-edicao/SKILL.md` ↔ `guia/MELHORIA.md` e
+    `dr-gestao/SKILL.md` ↔ `branding/PREFERENCIAS.md` consolidados (skill manda no procedimento,
+    regras só no dono canônico).
+17. **Menores.** ✅ `_durwav()` com cache; `json.dump(open(...))` → `with open(...)` (cortar.py 2×,
+    transcrever.py 1×); `criar_projeto.py` já cria `referencias/` e `scripts/` (Fase 3).
 
 ---
 

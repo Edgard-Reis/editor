@@ -44,7 +44,7 @@ duplicados em2 lugares (raiz e `vortex-edicao/`) — alterados em conjunto e
 | **2.1** `.env` único + `.gitignore` raiz | ✅ | `vortex-edicao/.env` e `projetos/dr-gestao/.env` (idênticos, SHA256 conferido) **removidos** — backup em `Temp\opencode\backup_env_20261028\`. Resolvers de `transcrever.py`/`broll_pexels.py`/`broll_pixabay.py` agora sobem a árvore de pastas → testados de `EP-00/workspace/` (subpasta funda): **3/3 leem o `.env` da raiz**. Raiz ganhou `.gitignore` agressivo (segredos, mídia, `EP-00/`, `arquivo/`, workspaces, `settings.local.json`). |
 | **2.2** `.claude/settings.local.json` | ✅ | `"defaultMode": "bypassPermissions"` **removido**; allowlist enxugada de ~90 → **13** entradas (só leitura: ffprobe/grep/sed/head/tail/python -c + o pipeline build/checa_texto/render_rapido). JSON válido. Efeito em sessão nova. |
 | **2.4** dependências declaradas | ✅ | `vortex-edicao/requirements.txt` criado (7 pacotes, versões da .venv validada, todos parseiam como PEP 508). `instalar.sh` → `pip install -r requirements.txt` + aponta `.env` para a raiz. `novo_projeto.sh` → caminho `D:/Drifit/Editor/projetos` hardcoded removido (usa `VORTEX_PROJETOS` ou `<raiz>/projetos`). `transcrever.py`: fallback do Whisper agora acha `whisper.exe` da `.venv` (antes `shutil.which` → `None`); `except ImportError` → `except Exception` para também cair no fallback se o *download* do modelo falhar. |
-| **2.3** versionamento | ⏳ pendente | commit `vortex-edicao` + `git init` raiz (fazer por último, após 3.1 mover EP-00) |
+| **2.3** versionamento | ✅ | **`vortex-edicao`** commitado (`b0c81d9`, 20 arquivos: encoding, multi-projeto, desacoplamento, requirements). **Raiz** `git init` + commit (`77cfff1`, 199 arquivos: gitignore, docs, wrappers). Verificado: **0** `.env` rastreado em ambos, **0** `settings.local.json`, nenhum segredo no histórico. Mídia/legados (.mp4/.wav/EP-00/arquivo) fora do repositório. |
 
 ### Fase 3 (Médio) — EM ANDAMENTO (28/10/2026)
 
@@ -60,6 +60,18 @@ duplicados em2 lugares (raiz e `vortex-edicao/`) — alterados em conjunto e
 `ELEVENLABS_API_KEY` está **vazia** (por design → transcrição cai no Whisper
 local), `PEXELS_API_KEY` contém só o placeholder `free` (não é chave real) e
 `PIXABAY_API_KEY` tem uma chave de verdade (33 chars). Nada disso foi alterado.
+
+### Fase 4 (Melhorias) — CONCLUÍDA em 28/10/2026
+
+| Tarefa | Status | Evidência |
+|---|---|---|
+| **4.3** cache do Whisper para fora do projeto | ✅ | `transcrever.py`: `CACHE_HF` fixo em `.cache/huggingface` virou `_cache_huggingface()` platform-aware (respeita `HF_HOME` se definido; senão `%LOCALAPPDATA%\huggingface` no Windows, `~/.cache` no Unix). **Migração física:** 1.546 MB movidos para `C:\Users\Edgard\AppData\Local\huggingface` (o `Move-Item` preservou o layout *flat* antigo e o `snapshot_download` re-baixou no layout `hub/` → **havia 2 cópias, ~3 GB**; removidos os leftovers flat orfãos, restando só o `hub/` íntegro). Teste fim-a-fim: `WhisperModel` **transcreve** do novo local sem re-download. `.cache/` já estava no `.gitignore`; pasta `.cache/` da raiz removida. |
+| **4.1** testes automatizados | ✅ | `vortex-edicao/tests/` criado (sem pytest — scripts Python puros): `test_encoding.py` (7 testes: round-trip de acentos em JSON/texto, `ensure_ascii=False`, trava de saída UTF-8, prova de que cp1252 quebraria sem a trava, presença da trava nos scripts) + `test_build_w.py` (7 testes: `_n`, distância de edição, `W()`, `fim=True`, `apos=`, sugestões no erro — extrai as funções reais do `build.py` via AST e roda contra fixture, sem disparar I/O do import) + `run_all.py`. **14/14 passam, exit 0.** Aproveitando: `modelo/ilustra.py` estava **sem** a trava de saída UTF-8 (defensivo adicionado). |
+| **4.2** READMEs atualizados | ✅ | `README.md` raiz reescrito: árvore real (`.agents/`, `arquivo/`, `Identidade visual/`, `projetos/` com `dr-gestao`/`ozon-tech`, wrappers), seção de configuração (`.env` único na raiz), **pipeline** `transcrever → cortar → build → render_rapido`, seção de **testes**, nota de `media/` unificado. `vortex-edicao/README.md`: fluxo manual corrigido, árvore com `tests/`/`requirements.txt`/`criar_projeto.py`/`novo_episodio.py`/`broll_pixabay.py`, seção de testes, nota `media/`. |
+| **4.4** consolidação de docs | ✅ | **Pare 1** (`vortex-edicao`): `SKILL.md` (109→95 l.) deixou de duplicar o fluxo de melhoria contínua e agora aponta para `guia/MELHORIA.md` (dono canônico do processo, 30 l. intactos). **Pare 2** (Dr. Gestão): `.agents/skills/dr-gestao/SKILL.md` (182→70 l.) deixou de duplicar identidade/paleta/b-roll/split-stage/checklist/histórico e agora manda só no **procedimento**, delegando as **regras** ao único dono `branding/PREFERENCIAS.md` (130 l., que mantém o histórico de melhorias). Checklist (§6 skill) era cópia verbatim de `PREFERENCIAS.md` §10 → virou ponteiro. |
+| **4.5** ajustes menores | ✅ | `modelo/build.py`: `_durwav()` ganhou cache `_DURWAV_CACHE` (memoiza; `sfx()` reabria o mesmo `.wav` a cada chamada). `cortar.py` (2×) e `transcrever.py` (1×): `json.dump(..., open(...))` sem `with` → `with open(...) as _f`. Verificado: 0 `json.dump` com `open()` inline restante; os 3 arquivos compilam. |
+
+**Total de testes:** 14/14 (`run_all.py` exit 0). **Commits Fase 4:** ver tabela resumo abaixo.
 
 ---
 
@@ -353,40 +365,52 @@ pillow>=13
 
 ---
 
-## 🔵 Fase 4 — Melhorias
+## 🔵 Fase 4 — Melhorias — ✅ CONCLUÍDA (28/10/2026)
 
-- [ ] **4.1** `vortex-edicao/tests/test_encoding.py` + `test_W.py`
-      (pytest ou script simples) — pega a Tarefa 1.1 automaticamente.
-- [ ] **4.2** Atualizar `README.md`: árvore real (`EP-00\`, `Identidade visual\`,
-      `projetos\EP-00\`, `.agents\`, `.cache\`), pipeline
-      `transcrever → cortar → build → render_rapido`, e `media/` vs `midia/`.
-- [ ] **4.3** Mover `.cache/huggingface` para fora do projeto
-      (`$env:HF_HOME` → `%LOCALAPPDATA%\huggingface`).
-- [ ] **4.4** Consolidar docs: um único fluxo de melhoria contínua
-      (`SKILL.md` ↔ `guia/MELHORIA.md`) e um único dono de preferências
-      (`branding/PREFERENCIAS.md`).
-- [ ] **4.5** Menores: `_durwav()` com cache; `with open(...)` em `json.dump`.
+- [x] **4.1** `vortex-edicao/tests/test_encoding.py` + `test_build_w.py` (scripts puros, sem pytest) — 14/14 passam; `run_all.py` exit 0.
+- [x] **4.2** Atualizar `README.md` (raiz + `vortex-edicao/`): árvore real, pipeline `transcrever → cortar → build → render_rapido`, `media/` unificado, seção de testes.
+- [x] **4.3** `.cache/huggingface` (1.5 GB) movido para `%LOCALAPPDATA%\huggingface`; `CACHE_HF` platform-aware; testado fim-a-fim sem re-download.
+- [x] **4.4** Docs consolidados: `vortex-edicao/SKILL.md` ↔ `guia/MELHORIA.md`; `dr-gestao/SKILL.md` ↔ `branding/PREFERENCIAS.md` (regras só no dono canônico).
+- [x] **4.5** `_durwav()` com cache; `with open(...)` nos `json.dump` (cortar.py 2×, transcrever.py 1×).
 
 ---
 
-## Ordem resumida
+## Ordem resumida — ✅ FASES 1–4 CONCLUÍDAS (28/10/2026)
 
-| # | Tarefa | Esforço | Bloqueia |
+| # | Tarefa | Status | Commit |
 |---|---|---|---|
-| 1.1 | encoding no `modelo/` | 10 min | episódios novos |
-| 1.2 + 1.3 | guarda de sobrescrita + `copytree` | 20 min | perda de trabalho |
-| 2.1 + 2.2 | `.env` único + `.gitignore` + permissões | 15 min | vazamento |
-| 2.4 | `requirements.txt` + instalação | 30 min | outra máquina |
-| 2.3 | commits | 30 min | reversão |
-| 3.1–3.5 | limpeza e desacoplamento | 1 h | dívida |
-| 4.1–4.5 | testes e docs | 1 h | regressão |
+| 1.1 | encoding no `modelo/` | ✅ | `b0c81d9` |
+| 1.2 + 1.3 | guarda de sobrescrita + `copytree` | ✅ | `b0c81d9` |
+| 2.1 + 2.2 | `.env` único + `.gitignore` + permissões | ✅ | `b0c81d9` / `77cfff1` |
+| 2.4 | `requirements.txt` + instalação | ✅ | `b0c81d9` |
+| 2.3 | commits | ✅ | `b0c81d9` (skill) + `77cfff1` (raiz) |
+| 3.1–3.5 | limpeza e desacoplamento | ✅ | `b0c81d9` |
+| 4.1–4.5 | testes, cache, docs, ajustes | ✅ | (ver abaixo) |
+
+**Commits Fase 4:** `vortex-edicao` (testes, README, SKILL, transcrever/build/cortar/ilustra) + raiz (README, PLANO, SKILL dr-gestao). Árvores limpas após commit; 0 `.env`/segredo rastreado.
 
 ---
 
-## ⚠️ Decisões pendentes do usuário
+## ⚠️ Decisões do usuário — TODAS respondidas (28/10/2026)
 
-1. Apagar os `.env` duplicados ou manter? (Tarefa 2.1)
-2. Voltar a confirmar comandos no `.claude`? (Tarefa 2.2)
-3. `git init` na raiz do projeto? (Tarefa 2.3)
-4. Destino de `EP-00\` e `projetos\EP-00\` (mover/arquivar)? (Tarefa 3.1)
-5. Unificar `media/` e `midia/` ou só documentar? (Tarefa 3.2)
+| # | Decisão | Resposta | O que foi feito |
+|---|---|---|---|
+| 1 | `.env` duplicado | Só o da raiz | Duplicados apagados (backup em Temp); resolvers sobem a árvore |
+| 2 | Permissões `.claude` | Voltar ao modo padrão | `bypassPermissions` removido; allowlist ~90 → 13 |
+| 3 | Versionamento raiz | Sim, gitignore agressivo | `git init` + commit `77cfff1` |
+| 4 | EP-00 legados | Mover para `arquivo/` | `arquivo/EP-00-raiz/` + `arquivo/EP-00-projetos/` + README |
+| 5 | `media` vs `midia` | Unificar em `media/` | 63 subs. código + move físico + build regenerado |
+
+---
+
+## ✅ Fase 4 (melhorias) — CONCLUÍDA em 28/10/2026
+
+- [x] **4.1** Testes automatizados (`test_encoding.py`, `test_build_w.py`, `run_all.py`) — automatizam o check 1.1. 14/14, exit 0.
+- [x] **4.2** README da árvore real + pipeline + `media/` unificado (raiz + vortex-edicao).
+- [x] **4.3** `.cache/huggingface` movido para `%LOCALAPPDATA%` (cache platform-aware, sem re-download).
+- [x] **4.4** Docs duplicados consolidados (`SKILL.md` ↔ `MELHORIA.md`; `dr-gestao/SKILL.md` ↔ `PREFERENCIAS.md`).
+- [x] **4.5** Menores: cache `_durwav()`, `with open()` em `json.dump`.
+
+> **Fases 1–4 completas.** Não há pendência aberta no plano. Próximos passos são opcionais
+> (ex.: `instalar.ps1` nativo para Windows, já que a máquina é Windows e o `instalar.sh`
+> é macOS/Linux — não bloqueia, pois a `.venv` já existe).
