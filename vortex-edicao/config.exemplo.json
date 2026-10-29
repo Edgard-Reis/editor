@@ -1,0 +1,15 @@
+{
+  "webcam": null,
+  "fundo_gravacao": "#0a0a0a",
+  "trechos_tela": null,
+  "rosto": [
+    960,
+    420
+  ],
+  "marca": {
+    "destaque": "#004aad",
+    "secundaria": "#8e7de5",
+    "fonte": "Inter"
+  },
+  "_ajuda": "webcam: se a gravação é TELA + webcam num canto (ex.: OBS), troque por {\"x\":1467,\"y\":324,\"w\":453,\"h\":726} (px em 1920x1080); o zoom mantém a câmera parada por cima. fundo_gravacao = cor atrás da webcam. trechos_tela = [[ini, fim], ...] em segundos do vídeo cortado em que a tela aparece (null = o vídeo todo). rosto = centro do rosto na câmera cheia (px em 1920x1080): o bate() do kit de cenas dá zoom em volta dele, sem mexer o rosto. marca = o seu design system: cor de destaque das cenas e fonte (as cores e tamanhos finos ficam em estilo.css e cenas.css)."
+}

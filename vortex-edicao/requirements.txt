@@ -1,0 +1,19 @@
+# Dependências do pipeline de transcrição e áudio (Vortex Edição).
+# Instale com:  .venv/bin/pip install -r requirements.txt   (macOS/Linux)
+#               .venv\Scripts\pip install -r requirements.txt   (Windows)
+#
+# As versões abaixo são as que estão validadas na .venv de produção (28/10/2026).
+# `openai-whisper` é só o FALLBACK: o motor preferido é `faster-whisper`.
+
+# --- transcrição (transcrever.py) ---
+faster-whisper>=1.2.1      # motor principal (requer ctranslate2, av — instalados como dependência)
+openai-whisper>=20250625   # fallback se faster-whisper falhar no import (requer torch)
+
+# --- limpeza de áudio (transcrever.py, clean_*.py) ---
+noisereduce>=3.0.3
+soundfile>=0.14.0
+
+# --- base numérica e imagens (cenas.py, ilustra.py, build.py) ---
+numpy>=2.5.4
+scipy>=1.18.1
+pillow>=13.0.0
