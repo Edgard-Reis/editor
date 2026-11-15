@@ -111,9 +111,9 @@
 
 /* 3. Tipografia dos Cards */
 .cn-sc-tit{font-size:36px;font-weight:800;letter-spacing:-.03em;line-height:1.15;margin-top:14px;color:#0b0b0b}
-.cn-sidecar.escuro .cn-sc-tit{color:#ffffff}
+.cn-sidecar.escuro .cn-sc-tit, .cn-split-area .cn-sc-tit{color:#ffffff}
 .cn-sc-sub{font-size:22px;font-weight:500;color:#666670;line-height:1.35;margin-top:10px}
-.cn-sidecar.escuro .cn-sc-sub{color:rgba(255,255,255,.75)}
+.cn-sidecar.escuro .cn-sc-sub, .cn-split-area .cn-sc-sub{color:rgba(255,255,255,.75)}
 .cn-sc-val{font-size:72px;font-weight:900;letter-spacing:-.04em;line-height:1;margin-top:12px;color:#004aad;font-variant-numeric:tabular-nums}
 
 /* 4. Barras de Progresso e Metas ("The Bar") */
@@ -135,7 +135,7 @@
 @keyframes girarStep{to{transform:rotate(360deg)}}
 
 /* 6. Palco PiP (Picture-in-Picture) */
-#palco{position:absolute;inset:0;z-index:7}
+.cn-pip-clip{position:absolute;inset:0;z-index:5}
 .cn-pip-stage{position:absolute;inset:0;z-index:4;opacity:0;background:radial-gradient(ellipse at 50% 40%,#ffffff 0%,#f1f4f9 60%,#e4e8f0 100%);overflow:hidden}
 .cn-pip-card{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);border-radius:30px;overflow:hidden;
   box-shadow:0 35px 90px rgba(0,0,0,.18), 0 8px 24px rgba(0,0,0,.08);border:4px solid #ffffff;background:#000}
@@ -159,3 +159,38 @@
 .cn-broll-moldura-card{position:absolute;left:190px;top:107px;width:1540px;height:866px;border-radius:20px;
   border:4px solid #ffffff;box-shadow:0 30px 90px rgba(0,0,0,.5);overflow:hidden;background:#000}
 
+
+
+/* ==========================================================================
+   MOTION SYSTEM — PERFIS VISUAIS HOMOLOGADOS PARA T10 (TÍTULO HERÓI)
+   Consolidação oficial: Fase 5.6 - Etapa 4D
+   Aparência cênica desacoplada da mecânica estrutural da biblioteca
+   ========================================================================== */
+
+/* Perfil 1 — Destaque Ciano (Referência Homologada Etapa 4C / 7C) */
+.th-heroi-destaque-ciano {
+    font-size: 88px;
+    font-weight: 800;
+    color: #00d2ff;
+    letter-spacing: -0.02em;
+}
+
+/* Perfil 2 — Virada de Chave (Referência Homologada Piloto 22.5-27.7s) */
+.th-heroi-virada-chave {
+    font-size: 152px;
+    font-weight: 800;
+    line-height: .92;
+    letter-spacing: -.045em;
+    color: #ffffff;
+    text-shadow: 0 0 70px rgba(47, 151, 212, .40), 0 10px 44px rgba(0, 0, 0, .65);
+}
+
+/* Perfil 3 — Alta Minutagem (Referência Homologada Piloto 23.3-30.7s) */
+.th-heroi-alta-minutagem {
+    font-size: 76px;
+    font-weight: 800;
+    line-height: 1.02;
+    letter-spacing: -0.03em;
+    color: #ffffff;
+    text-shadow: 0 0 54px rgba(0, 74, 173, 0.55), 0 8px 36px rgba(0, 0, 0, 0.70);
+}

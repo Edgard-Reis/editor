@@ -27,6 +27,18 @@
 import re as _re
 DESTAQUE = (CFG.get("marca") or {}).get("destaque", "#1d7cf2")   # cor de destaque da cena branca (config.json → marca)
 
+# ---------- Conexão com o Núcleo de Composição (Fase 2) ----------
+STAGE_MGR = globals().get("STAGE_MGR")
+COMP_MGR = globals().get("COMP_MGR")
+SOUND_BUS = globals().get("SOUND_BUS")
+
+def conecta_nucleo(stage_mgr=None, comp_mgr=None, sound_bus=None):
+    """Conecta instâncias do StageStateManager, CompositionManager e RobustSoundBus."""
+    global STAGE_MGR, COMP_MGR, SOUND_BUS
+    if stage_mgr is not None: STAGE_MGR = stage_mgr
+    if comp_mgr is not None: COMP_MGR = comp_mgr
+    if sound_bus is not None: SOUND_BUS = sound_bus
+
 # ---------- emoji / ícone próprio ----------
 EMO = {"dinheiro": "💰", "notas": "💸", "robo": "🤖", "celular": "📱", "notebook": "💻", "grafico": "📈", "caindo": "📉",
        "calendario": "📅", "relogio": "⏰", "alvo": "🎯", "raio": "⚡", "fogo": "🔥", "check": "✅", "x": "❌", "alerta": "⚠️",
@@ -45,10 +57,15 @@ def E(nome, px=96, cls=""):
     return f'<span class="cn-emo {cls}" style="font-size:{px}px">{EMO.get(nome, nome)}</span>'
 
 # ---------- sons (todos do kit sintetizado) ----------
-def _som(nome, t, vol=.4, dur=None, reserva="clique2"):
-    sfx(nome if (AQUI / f"sons/{nome}.wav").exists() else reserva, t, vol, dur)
+def _som(nome, t, vol=.4, dur=None, reserva="clique2", event_id=None, modo="auto"):
+    if SOUND_BUS is not None:
+        eid = event_id or f"cn_{nome}_{round(t, 2)}"
+        som_arquivo = nome if (AQUI / f"sons/{nome}.wav").exists() else reserva
+        SOUND_BUS.registrar(eid, som_arquivo, t, vol, dur, origem="cenas", modo=modo)
+    else:
+        sfx(nome if (AQUI / f"sons/{nome}.wav").exists() else reserva, t, vol, dur)
 
-def check_som(t): _som("check", t - .02, .5)
+def check_som(t): _som("check", t - .02, .5, event_id=f"check_{round(t, 2)}")
 
 # ---------- avisos ----------
 def aviso(txt, t=None):
@@ -88,7 +105,7 @@ def cena(de, ate, titulo="", plano="", passos=1, fixo="", longa=False):
     CENAS_B.append((de, ate))
     i = nid("cn")
     tt, tempos, azs = _titulo(titulo, de - 8.0) if titulo else ("", None, [])
-    HTML.append(f'<div class="clip cn-cena" data-start="{r3(de)}" data-duration="{r3(ate - de)}" data-track-index="10">'
+    HTML.append(f'<div id="cena_{i}" class="clip cn-cena" data-start="{r3(de)}" data-duration="{r3(ate - de)}" data-track-index="10">'
                 f'<div class="in" id="{i}"><div class="cn-plano" style="width:{max(1, passos) * PASSO + 1920}px">{plano}</div>{tt}{fixo}</div></div>')
     JS.append(f'tl.fromTo("#{i}",{{opacity:0,scale:1.04}},{{opacity:1,scale:1,duration:.35,ease:"power2.out"}},{r3(de)});'
               f'tl.to("#{i}",{{opacity:0,duration:.25,ease:"power2.in"}},{r3(ate - 0.25)});')
@@ -241,9 +258,19 @@ def bate(t, s=1.08, segura=0.9):
     s = min(s, 1.10)
     CAMZ.append((t - 0.1, t + segura + 0.6)); BATES.append(t)
     zx, zy = r3((ROSTO[0] - 960) * (1 - s)), r3((ROSTO[1] - 540) * (1 - s))
-    JS.append(f'tl.fromTo("#palco",{{scale:1,x:0,y:0}},{{scale:{s},x:{zx},y:{zy},duration:.16,ease:"power3.out",immediateRender:false}},{r3(t - 0.05)});'
-              f'tl.to("#palco",{{scale:1,x:0,y:0,duration:.5,ease:"power2.inOut"}},{r3(t + segura)});')
-    _som("swish", t - 0.08, 0.35)
+    
+    if STAGE_MGR is not None:
+        # Quando o núcleo moderno está conectado, o zoom atua no elemento óptico interno (#base),
+        # preservando a posição e geometria de #palco (seja em solo, split ou pip)
+        JS.append(f'tl.fromTo("#base",{{scale:1}},{{scale:{s},duration:.16,ease:"power3.out"}},{r3(t - 0.05)});'
+                  f'tl.to("#base",{{scale:1,duration:.5,ease:"power2.inOut"}},{r3(t + segura)});')
+        STAGE_MGR.registrar_animacao_externa("base", "scale", t - 0.05, segura + 0.55)
+    else:
+        # Comportamento legado em #palco
+        JS.append(f'tl.fromTo("#palco",{{scale:1,x:0,y:0}},{{scale:{s},x:{zx},y:{zy},duration:.16,ease:"power3.out",immediateRender:false}},{r3(t - 0.05)});'
+                  f'tl.to("#palco",{{scale:1,x:0,y:0,duration:.5,ease:"power2.inOut"}},{r3(t + segura)});')
+                  
+    _som("swish", t - 0.08, 0.35, event_id=f"bate_{round(t, 2)}")
 
 def num_lado(de, ate, t0, t1, a, b, pre="", suf="", sub="", emo="", x=110, y=330, casas=0):
     """Número contando num card ao lado do rosto (uma das 3 coisas permitidas ali: logo, número, inscrição)."""
@@ -314,23 +341,38 @@ def lower_third(de, ate, t_nome, nome, credenciais=(), x=80, y=748):
     return i
 
 # ---------- b-roll (scripts/broll_pixabay.py / referências antigo editor) ----------
-def broll(de, ate, arquivo, card=False, estilo="cheia", x=260, y=150, w=1400, kb=1.06, media_start=0.0):
-    """B-roll (vídeo .mp4 ou imagem) com push-in lento, entrada e saída animadas.
+def broll(de, ate, arquivo, card=False, estilo="cheia", x=260, y=150, w=1400, kb=1.06, media_start=0.0,
+          pip_apresentador=False, pip_pos="inf-dir"):
+    """B-roll (vídeo .mp4 ou imagem) com suporte opcional a apresentador flutuando em PiP sobreposto.
     estilo='cheia': tela cheia 1920x1080 (padrão)
     estilo='letterbox': barras gradiente topo/base (ref antigo editor v2_065s)
     estilo='moldura': card centralizado com borda branca 4px e fundo gradiente da marca (ref antigo editor v2_008s)
     card=True: num card arredondado em (x, y, w) 16:9, com a câmera continuando atrás.
+    pip_apresentador=True: o b-roll roda no fundo (track 5, z-index 5) e a viewport do apresentador é reduzida para PiP (z-index 20).
     """
     if not (AQUI / arquivo).exists(): aviso(f"b-roll não encontrado: {arquivo}", de)
-    if not card: CENAS_B.append((de, ate))
+    if not card and not pip_apresentador: CENAS_B.append((de, ate))
     v = nid("br")
     is_vid = arquivo.lower().endswith((".mp4", ".mov", ".webm"))
     
+    # Ordem de camadas e tracks: se pip_apresentador for True, o b-roll fica abaixo do palco (z-index 5 vs 20)
+    track_br = 5 if pip_apresentador else 12
+    z_br = 5 if pip_apresentador else 12
+    
+    if pip_apresentador and STAGE_MGR is not None and COMP_MGR is not None:
+        try:
+            from estagio import CompositionPreset
+            vp_pip, _ = CompositionPreset.pip(posicao=pip_pos)
+            STAGE_MGR.transicionar(de, 0.55, ease="power3.inOut", label="broll_pip_enter", **vp_pip.props)
+            COMP_MGR.definir_empilhamento(de, {"#palco": 30, f"#{v}": 5})
+        except Exception as e:
+            print(f"[AVISO broll pip_apresentador] erro: {e}")
+            
     if estilo == "letterbox":
         if is_vid:
             HTML.append(f'<video id="{v}" class="clip cn-broll" src="{arquivo}" muted playsinline '
                         f'data-start="{r3(de)}" data-duration="{r3(ate - de)}" data-media-start="{r3(media_start + 0.001)}" '
-                        f'data-track-index="12" style="position:absolute;left:0;top:100px;width:1920px;height:880px;object-fit:cover;z-index:12"></video>')
+                        f'data-track-index="{track_br}" style="position:absolute;left:0;top:100px;width:1920px;height:880px;object-fit:cover;z-index:{z_br}"></video>')
         else:
             HTML.append(f'<div id="{v}" class="clip cn-broll" data-start="{r3(de)}" data-duration="{r3(ate - de)}" '
                         f'data-track-index="12" style="position:absolute;left:0;top:100px;width:1920px;height:880px;overflow:hidden;z-index:12">'
@@ -361,11 +403,12 @@ def broll(de, ate, arquivo, card=False, estilo="cheia", x=260, y=150, w=1400, kb
         h = round(w * 9 / 16)
         pos = (f"left:{x}px;top:{y}px;width:{w}px;height:{h}px;border-radius:30px;box-shadow:0 30px 80px rgba(0,0,0,.45)" if card
                else "left:0;top:0;width:1920px;height:1080px")
+        z_style = f";z-index:{z_br}" if pip_apresentador else ""
         if is_vid:
             HTML.append(f'<video id="{v}" class="clip cn-broll" src="{arquivo}" muted playsinline data-start="{r3(de)}" data-duration="{r3(ate - de)}" '
-                        f'data-media-start="{r3(media_start + 0.001)}" data-track-index="13" style="{pos}"></video>')
+                        f'data-media-start="{r3(media_start + 0.001)}" data-track-index="{track_br}" style="{pos}{z_style}"></video>')
         else:
-            HTML.append(f'<div class="clip cn-broll" data-start="{r3(de)}" data-duration="{r3(ate - de)}" data-track-index="13" style="{pos}">'
+            HTML.append(f'<div class="clip cn-broll" data-start="{r3(de)}" data-duration="{r3(ate - de)}" data-track-index="{track_br}" style="{pos}{z_style}">'
                         f'<img id="{v}" src="{arquivo}" style="width:100%;height:100%;object-fit:cover"></div>')
         if card:
             JS.append(f'tl.fromTo("#{v}",{{opacity:0,y:40,scale:.92,filter:"blur(12px)"}},{{opacity:1,y:0,scale:1,filter:"blur(0px)",duration:.5,ease:"back.out(1.4)"}},{r3(de)});'
@@ -476,56 +519,155 @@ def card_flutuante(de, ate, titulo, badge="", badge_tipo="azul", valor="", sub="
     _som("swish", ate - .3, .3)
     return i
 
-def pip_stage(de, ate, midia, badge="DR. GESTÃO", titulo="", sub="", etapas=5, etapa_ativa=1, 
-              w=1120, h=630, x=100, y=140, pip_pos="inf-dir"):
+def pip_stage(de, ate, midia="", badge="DR. GESTÃO", titulo="", sub="", etapas=5, etapa_ativa=1, 
+              w=1120, h=630, x=100, y=140, pip_pos="inf-dir", retornar_ao_solo=True,
+              card_html_custom=None):
     """Palco Picture-in-Picture: o apresentador escala suavemente para um card webcam no canto,
-    enquanto a tela revela um canvas elegante com card flutuante de media, badge e steppers."""
+    enquanto a tela revela um canvas elegante com card flutuante de media, badge e steppers.
+    retornar_ao_solo=False permite encadear transições sem resetar para tela cheia."""
     CENAS_B.append((de, ate))
     sid = nid("pip")
     
-    # Coordenadas do PiP do apresentador
-    if pip_pos == "inf-dir":
-        cam_x, cam_y = 560, 270
-    else:
-        cam_x, cam_y = -560, 270
-        
-    bdg = f'<div class="cn-badge lilas cn-pip-badge-top"><span class="cn-badge-dot"></span><span>✦ {badge}</span></div>'
+    bdg = f'<div class="cn-badge lilas cn-pip-badge-top"><span class="cn-badge-dot"></span><span>✦ {badge}</span></div>' if badge else ""
     stp = stepper(etapas, etapa_ativa) if etapas else ""
     tit = f'<div class="cn-sc-tit" style="text-align:center;margin-top:20px;font-size:42px">{titulo}</div>' if titulo else ""
     sub_h = f'<div class="cn-sc-sub" style="text-align:center;font-size:24px">{sub}</div>' if sub else ""
     
-    is_video = midia.lower().endswith((".mp4", ".mov", ".webm"))
-    if is_video:
-        HTML.append(f'<video id="{sid}_v" class="clip" src="{midia}" muted playsinline '
-                    f'data-start="{r3(de)}" data-duration="{r3(ate - de)}" data-media-start="0.001" data-track-index="6" '
-                    f'style="position:absolute;left:{x}px;top:{y}px;width:{w}px;height:{h}px;border-radius:30px;object-fit:cover;z-index:6;'
-                    f'box-shadow:0 35px 90px rgba(0,0,0,.18);border:4px solid #ffffff"></video>')
-        JS.append(f'tl.fromTo("#{sid}_v",{{opacity:0,scale:.9,y:40}},{{opacity:1,scale:1,y:0,duration:.7,ease:"back.out(1.4)"}},{r3(de + .1)});'
-                  f'tl.to("#{sid}_v",{{opacity:0,duration:.4,ease:"power2.in"}},{r3(ate - .45)});')
-        card_html = f'<div style="position:absolute;left:{x+24}px;top:{y+24}px;z-index:10">{bdg}</div>'
+    if card_html_custom:
+        card_html = card_html_custom
+    elif midia:
+        is_video = midia.lower().endswith((".mp4", ".mov", ".webm"))
+        if is_video:
+            HTML.append(f'<video id="{sid}_v" class="clip" src="{midia}" muted playsinline '
+                        f'data-start="{r3(de)}" data-duration="{r3(ate - de)}" data-media-start="0.001" data-track-index="6" '
+                        f'style="position:absolute;left:{x}px;top:{y}px;width:{w}px;height:{h}px;border-radius:30px;object-fit:cover;z-index:6;'
+                        f'box-shadow:0 35px 90px rgba(0,0,0,.18);border:4px solid #ffffff"></video>')
+            JS.append(f'tl.fromTo("#{sid}_v",{{opacity:0,scale:.9,y:40}},{{opacity:1,scale:1,y:0,duration:.7,ease:"back.out(1.4)"}},{r3(de + .1)});'
+                      f'tl.to("#{sid}_v",{{opacity:0,duration:.4,ease:"power2.in"}},{r3(ate - .45)});')
+            card_html = f'<div style="position:absolute;left:{x+24}px;top:{y+24}px;z-index:10">{bdg}</div>'
+        else:
+            card_html = (f'<div class="cn-pip-card" style="width:{w}px;height:{h}px;left:{x + w//2}px;top:{y + h//2}px">'
+                         f'  {bdg}<img src="{midia}" style="width:100%;height:100%;object-fit:cover"></div>')
     else:
-        card_html = (f'<div class="cn-pip-card" style="width:{w}px;height:{h}px;left:{x + w//2}px;top:{y + h//2}px">'
-                     f'  {bdg}<img src="{midia}" style="width:100%;height:100%;object-fit:cover"></div>')
+        card_html = ""
         
     corpo = (f'<div class="cn-pip-stage" id="{sid}">'
              f'  {card_html}'
              f'  <div style="position:absolute;left:{x}px;top:{y + h + 24}px;width:{w}px;z-index:7">{tit}{sub_h}{stp}</div>'
              f'</div>')
              
-    i = clip(de, ate, corpo, track=5)
+    i = clip(de, ate, corpo, track=5, estilo="position:absolute;inset:0;z-index:5;", cls="cn-pip-clip")
     
-    # Animacao de encolhimento da camera do apresentador (#palco)
-    JS.append(f'tl.to("#palco",{{scale:.32,x:{cam_x},y:{cam_y},borderRadius:"28px",border:"4px solid #ffffff",'
-              f'boxShadow:"0 25px 60px rgba(0,0,0,.45)",duration:.65,ease:"power3.inOut"}},{r3(de)});'
-              f'tl.fromTo("#{sid}",{{opacity:0}},{{opacity:1,duration:.5,ease:"power2.out"}},{r3(de)});'
-              f'tl.fromTo("#{sid} .cn-pip-card",{{scale:.9,y:40}},{{scale:1,y:0,duration:.7,ease:"back.out(1.4)"}},{r3(de + .1)});'
-              f'tl.to("#{sid}",{{opacity:0,duration:.4,ease:"power2.in"}},{r3(ate - .45)});'
-              f'tl.to("#palco",{{scale:1,x:0,y:0,borderRadius:"0px",border:"0px solid transparent",'
-              f'boxShadow:"none",duration:.55,ease:"power3.inOut"}},{r3(ate - .5)});')
+    if STAGE_MGR is not None and COMP_MGR is not None:
+        try:
+            from estagio import CompositionPreset
+            vp_pip, area_pip = CompositionPreset.pip(posicao=pip_pos)
+            STAGE_MGR.transicionar(de, 0.65, ease="power3.inOut", label="pip_enter", **vp_pip.props)
+            COMP_MGR.definir_empilhamento(de, {"#palco": 30, f"#{i}": 5, f"#{sid}": 5})
+            
+            JS.append(f'tl.fromTo("#{sid}",{{opacity:0}},{{opacity:1,duration:.5,ease:"power2.out"}},{r3(de)});'
+                      f'tl.fromTo("#{sid} .cn-pip-card",{{scale:.9,y:40}},{{scale:1,y:0,duration:.7,ease:"back.out(1.4)"}},{r3(de + .1)});'
+                      f'tl.to("#{sid}",{{opacity:0,duration:.4,ease:"power2.in"}},{r3(ate - .45)});')
+                      
+            if retornar_ao_solo:
+                vp_solo, _ = CompositionPreset.solo_fullscreen()
+                STAGE_MGR.transicionar(ate - 0.55, 0.55, ease="power3.inOut", label="pip_exit_solo", **vp_solo.props)
+                COMP_MGR.definir_empilhamento(ate - 0.55, {"#palco": 10})
+        except Exception as e:
+            pass
+    else:
+        cam_x, cam_y = (560, 270) if pip_pos == "inf-dir" else (-560, 270)
+        JS.append(f'tl.to("#palco",{{scale:.32,x:{cam_x},y:{cam_y},borderRadius:"28px",border:"4px solid #ffffff",'
+                  f'boxShadow:"0 25px 60px rgba(0,0,0,.45)",duration:.65,ease:"power3.inOut"}},{r3(de)});'
+                  f'tl.fromTo("#{sid}",{{opacity:0}},{{opacity:1,duration:.5,ease:"power2.out"}},{r3(de)});'
+                  f'tl.fromTo("#{sid} .cn-pip-card",{{scale:.9,y:40}},{{scale:1,y:0,duration:.7,ease:"back.out(1.4)"}},{r3(de + .1)});'
+                  f'tl.to("#{sid}",{{opacity:0,duration:.4,ease:"power2.in"}},{r3(ate - .45)});')
+        if retornar_ao_solo:
+            JS.append(f'tl.to("#palco",{{scale:1,x:0,y:0,borderRadius:"0px",border:"0px solid transparent",'
+                      f'boxShadow:"none",duration:.55,ease:"power3.inOut"}},{r3(ate - .5)});')
               
-    _som("whoosh_curto", de - .05, .4)
-    _som("swish", ate - .45, .35)
+    _som("whoosh_curto", de - .05, .4, event_id=f"pip_in_{round(de,2)}")
+    if retornar_ao_solo:
+        _som("swish", ate - .45, .35, event_id=f"pip_out_{round(ate,2)}")
     return i
+
+def split_stage(de, ate, proporcao="33/67", lado="esq", com_margem=True,
+                retornar_ao_solo=True, badge="DR. GESTÃO", titulo="", sub="",
+                conteudo_html="", track=8):
+    """Componente oficial de Split Screen com proporções dinâmicas e área de conteúdo integrada.
+    Posiciona a viewport do apresentador em coluna lateral e cria o container DOM
+    perfeitamente dimensionado para a área de conteúdo gráfico restante."""
+    CENAS_B.append((de, ate))
+    sid_split = nid("split")
+    
+    try:
+        from estagio import CompositionPreset, ContentArea
+        if proporcao == "33/67":
+            vp, area = CompositionPreset.split_33_67(com_margem=com_margem)
+        elif proporcao == "50/50":
+            vp, area = CompositionPreset.split_50_50(com_margem=com_margem)
+        else:
+            vp, area = CompositionPreset.split_33_67(com_margem=com_margem)
+    except Exception:
+        vp, area = None, None
+        
+    if lado == "dir" and vp is not None:
+        vp_props = dict(vp.props)
+        vp_props["left"] = 1920 - vp_props["width"] - (48 if com_margem else 0)
+        area_left = 48 if com_margem else 0
+        area = ContentArea(f"{area.id_area}_dir", area_left, area.top, area.width, area.height, area.descricao)
+    elif vp is not None:
+        vp_props = vp.props
+    else:
+        vp_props = {"left": 48, "top": 48, "width": 584, "height": 984, "borderRadius": "24px"}
+
+    if STAGE_MGR is not None and COMP_MGR is not None and vp is not None:
+        STAGE_MGR.transicionar(de, 0.60, ease="power3.inOut", label=f"split_{proporcao}_{lado}", **vp_props)
+        COMP_MGR.registrar_area_conteudo(de, ate, area)
+        COMP_MGR.definir_empilhamento(de, {"#palco": 10, f"#{sid_split}": 10})
+        
+        if retornar_ao_solo:
+            vp_solo, _ = CompositionPreset.solo_fullscreen()
+            STAGE_MGR.transicionar(ate - 0.60, 0.60, ease="power3.inOut", label="split_exit_solo", **vp_solo.props)
+            COMP_MGR.definir_empilhamento(ate - 0.60, {"#palco": 10})
+    else:
+        JS.append(f'tl.to("#palco",{{left:{vp_props["left"]},top:{vp_props["top"]},width:{vp_props["width"]},height:{vp_props["height"]},borderRadius:"{vp_props.get("borderRadius", "24px")}",duration:.6,ease:"power3.inOut"}},{r3(de)});')
+        if retornar_ao_solo:
+            JS.append(f'tl.to("#palco",{{left:0,top:0,width:1920,height:1080,borderRadius:"0px",duration:.6,ease:"power3.inOut"}},{r3(ate - .6)});')
+
+    bdg_h = f'<div class="cn-badge azul"><span class="cn-badge-dot"></span><span>✦ {badge}</span></div>' if badge else ""
+    tit_h = f'<div class="cn-sc-tit" style="font-size:38px;margin-top:14px">{titulo}</div>' if titulo else ""
+    sub_h = f'<div class="cn-sc-sub" style="font-size:22px">{sub}</div>' if sub else ""
+    topo_card = f'<div style="margin-bottom:24px">{bdg_h}{tit_h}{sub_h}</div>' if (bdg_h or tit_h or sub_h) else ""
+
+    corpo = (
+        f'<div class="cn-split-content" id="{sid_split}_in" style="width:100%;height:100%;position:relative">'
+        f'  {topo_card}'
+        f'  {conteudo_html}'
+        f'</div>'
+    )
+
+    area_l = area.left if area else 672
+    area_t = area.top if area else 48
+    area_w = area.width if area else 1200
+    area_h = area.height if area else 984
+
+    HTML.append(
+        f'<div id="{sid_split}" class="clip cn-split-area" data-start="{r3(de)}" data-duration="{r3(ate - de)}" '
+        f'data-track-index="{track}" style="position:absolute;left:{area_l}px;top:{area_t}px;width:{area_w}px;height:{area_h}px;z-index:10;pointer-events:none">'
+        f'{corpo}</div>'
+    )
+
+    JS.append(
+        f'tl.fromTo("#{sid_split}_in",{{opacity:0,x:{40 if lado=="esq" else -40}}},{{opacity:1,x:0,duration:.5,ease:"power2.out"}},{r3(de + .15)});'
+        f'tl.to("#{sid_split}_in",{{opacity:0,x:{20 if lado=="esq" else -20},duration:.4,ease:"power2.in"}},{r3(ate - .45)});'
+    )
+
+    _som("whoosh_curto", de - 0.05, 0.4, event_id=f"split_in_{round(de,2)}")
+    if retornar_ao_solo:
+        _som("swish", ate - 0.50, 0.35, event_id=f"split_out_{round(ate,2)}")
+
+    return sid_split, area
 
 def transicao_marca(t, dur=0.9, arquivo="overlays/transicoes/transicao_wipe_drgestao_16x9.webm"):
     """Insere a transicao de corte oficial com a identidade visual da marca no tempo t."""

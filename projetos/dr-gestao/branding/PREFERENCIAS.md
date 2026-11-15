@@ -12,6 +12,12 @@ Este documento registra as preferências e regras de edição aprovadas para os 
 - **Tipografia:** Fonte `Inter` (pesos 500, 600, 700, 800).
 - **Ícones Animados:** Sempre traçados no tom lilás da marca (`#8e7de5`).
 
+### Perfis Visuais Homologados para Títulos Heróis (Motion Library T10):
+A tipografia de títulos cinéticos utiliza o componente desacoplado T10 com perfis de estilo homologados:
+- **Perfil 1 (`.th-heroi-destaque-ciano`):** `font-size: 88px; font-weight: 800; color: #00d2ff; letter-spacing: -0.02em;` (Destaque luminoso de alta legibilidade aprovado nas Etapas 4C e 7C). O ciano `#00d2ff` atua como realce visual de alto contraste sobre fundos escuros sem alterar a paleta principal.
+- **Perfil 2 (`.th-heroi-virada-chave`):** `font-size: 152px; font-weight: 800; line-height: .92; letter-spacing: -.045em; color: #ffffff; text-shadow: 0 0 70px rgba(47, 151, 212, .40), 0 10px 44px rgba(0, 0, 0, .65);` (Título de impacto com glow no azul claro `#2f97d4` homologado na cena Virada de Chave).
+- **Perfil 3 (`.th-heroi-alta-minutagem`):** `font-size: 76px; font-weight: 800; line-height: 1.02; letter-spacing: -0.03em; color: #ffffff; text-shadow: 0 0 54px rgba(0, 74, 173, 0.55), 0 8px 36px rgba(0, 0, 0, 0.70);` (Título editorial com glow no azul institucional `#004aad` homologado na cena Alta Minutagem).
+
 ---
 
 ## 2. Apresentação e Lower Third (00:02)
@@ -145,6 +151,8 @@ Para garantir que a qualidade da série evolua constantemente e nenhum erro ou p
 | **2026-10-27** | Geral | B-Rolls | B-Rolls genéricos de indústrias pesadas não relacionados ao vestuário | B-Rolls devem retratar estritamente confecção do vestuário (costura, enfesto, corte de tecidos, araras, linhas de confecção, estamparia e modelagem). |
 | **2026-10-27** | Geral | Marca d'Água | Falta de assinatura visual contínua do canal no vídeo horizontal | Marca d'água oficial branca (`Logo-Branco-Crop.png`) fixada permanentemente no canto inferior direito (`x=1697`, `y=1016`, `w=175px`, `opacity=0.92`). |
 | **2026-10-27** | Geral | Estilo Visual | Dinamismo entre b-rolls e motion graphics baseado nas referências | Alternância rítmica entre estilo `moldura` (card 4px branco sobre fundo gradiente da marca), `letterbox` (barras com degradê azul/lilás), palco PiP e sidecars flutuantes. |
+| **2026-11-06** | Geral | Motion T10 | Consolidação dos perfis visuais de títulos heróis no branding oficial (Fase 5.6 - Etapa 4D) | Criação dos perfis `.th-heroi-destaque-ciano` (88px azul #00d2ff), `.th-heroi-virada-chave` (152px branco com glow #2f97d4) e `.th-heroi-alta-minutagem` (76px branco com glow #004aad) em `cenas.css` com entrega automática via provisionador. |
+| **2026-11-11** | Geral | Linguagem Visual | Preferência mandatória por Motion Graphics em relação a cards flutuantes | Priorizar tipografia cinética (letras e palavras animadas com stagger e blur), linhas e trilhas vetoriais, contadores numéricos dinâmicos e b-rolls com Ken Burns suave. Cards flutuantes (caixas estáticas) podem existir pontualmente para dados estruturados, mas JAMAIS devem ser a maioria da edição visual. |
 
 ---
 
