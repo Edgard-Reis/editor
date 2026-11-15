@@ -1,0 +1,62 @@
+{
+  "nome": "Drifit Editor Local Toolchain",
+  "versao_manifesto": "1.0.0",
+  "data_homologacao": "2026-11-05",
+  "status": "HOMOLOGADO_PRODUCAO",
+  "plataforma_primaria": "win32-x64",
+  "componentes": {
+    "hyperframes": {
+      "versao": "0.9.5",
+      "tipo": "motor_renderizacao",
+      "ponto_entrada": "node_modules/hyperframes/bin/hyperframes.mjs",
+      "sha256": "E65ED25C36426B6E9ADE59C4D20D92C5A78BD2A9F459AB3BFB461CDD2A1EF56F",
+      "package_json_sha256": "0C776DAC23EAACF58A7F4153C638EDD9C4393459996292775E6B0C28CB804444",
+      "package_lock_sha256": "E185D94FE4D07583957BEE65E30519E729707CD626E0FC8C1F6AD2F004FF5D17",
+      "licenca": "HeyGen Commercial / Open Specification"
+    },
+    "ffmpeg": {
+      "versao": "9.0.2-essentials_build-www.gyan.dev",
+      "tipo": "transcoder_muxer",
+      "caminho_relativo": "bin/windows-x64/ffmpeg.exe",
+      "tamanho_bytes": 105423872,
+      "sha256": "3256173F3F8BFFD7DF12227C68ADF68025EDB1832273A9530688A7BB1ED8EDEC",
+      "licenca": "GPLv3 / LGPLv3 (Gyan Essentials build)"
+    },
+    "ffprobe": {
+      "versao": "9.0.2-essentials_build-www.gyan.dev",
+      "tipo": "analisador_midia",
+      "caminho_relativo": "bin/windows-x64/ffprobe.exe",
+      "tamanho_bytes": 105221120,
+      "sha256": "F0D36ECBBDD3BCFAC3EFA078C96C7271C2E68B3810595552AC3B7F17E9A65C52",
+      "licenca": "GPLv3 / LGPLv3 (Gyan Essentials build)"
+    },
+    "gsap": {
+      "versao": "3.14.2",
+      "tipo": "motor_animacao_web",
+      "caminho_relativo": "assets/gsap/3.14.2/gsap.min.js",
+      "tamanho_bytes": 72779,
+      "sha256": "C174BFCE53A729418D57A8AD8625E7247C793A22FEF8E2851E3CFA3DE9CD8280",
+      "licenca": "GreenSock Standard License (No Charge)"
+    }
+  },
+  "dependencias_ambiente_host": {
+    "nodejs": {
+      "versao_minima": "v20.0.0",
+      "versao_homologada": "v22.18.0",
+      "localizacao_padrao": "PATH do sistema operacional"
+    },
+    "chrome_headless_shell": {
+      "versao_homologada": "win64-152.0.7977.30",
+      "tamanho_bytes": 209170944,
+      "sha256": "909FA4A0D2866F5B5B6CABD0A3B3545EDEAF84DB361148DBC8E992E25E61E7E6",
+      "localizacao": "Cache local do Puppeteer / HyperFrames (~/.cache/hyperframes/chrome/...)"
+    }
+  },
+  "politica_seguranca": {
+    "consultas_npm_sob_demanda": false,
+    "downloads_durante_render": false,
+    "chamadas_npx": false,
+    "fontes_remotas_obrigatorias": false,
+    "rede_obrigatoria_render": false
+  }
+}

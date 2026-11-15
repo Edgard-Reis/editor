@@ -26,6 +26,36 @@ from pathlib import Path
 import sys as _stdout_sys
 if hasattr(_stdout_sys.stdout, "reconfigure"):
     _stdout_sys.stdout.reconfigure(encoding="utf-8", errors="replace")  # trava: saída cp1252 não quebra o script
+
+# -------------------------------------------------------------------------------------
+# DESCOBERTA DINÂMICA DA RAIZ DO DRIFIT EDITOR (MOTION LIBRARY)
+# -------------------------------------------------------------------------------------
+_REQUIRED_ROOT_MARKERS = (
+    ("vortex-edicao", True),
+    ("projetos", True),
+    ("criar_projeto.py", False),
+    ("novo_episodio.py", False),
+)
+
+def find_editor_root(start=None) -> Path:
+    """Descobre a raiz canônica do Drifit Editor subindo pela árvore de diretórios.
+    Exige a presença simultânea dos 4 marcadores oficiais de arquitetura."""
+    if start is None:
+        start = Path(__file__)
+    start_path = Path(start).resolve()
+    current = start_path if start_path.is_dir() else start_path.parent
+    for candidate in [current, *current.parents]:
+        if all((candidate / name).is_dir() if is_dir else (candidate / name).is_file()
+               for name, is_dir in _REQUIRED_ROOT_MARKERS):
+            return candidate
+    raise FileNotFoundError(
+        f"Assinatura da raiz do Drifit Editor não encontrada nos ancestrais de '{start_path}'. "
+        f"Marcadores exigidos: {[m[0] for m in _REQUIRED_ROOT_MARKERS]}."
+    )
+
+ROOT_EDITOR = find_editor_root(Path(__file__))
+if str(ROOT_EDITOR) not in _stdout_sys.path:
+    _stdout_sys.path.insert(0, str(ROOT_EDITOR))
 AQUI = Path(__file__).parent
 PAL = json.load(open(AQUI / "media/palavras_saida.json", encoding="utf-8"))
 # config.json: onde fica a webcam na gravação (px em 1920×1080) — ou "webcam": null se não houver.
@@ -275,6 +305,14 @@ def cena(de, ate):
 # Ancorada na fala deste episódio com W("frase").
 # Cada motion entra e sai no ritmo das palavras do episódio atual.
 # =====================================================================================
+# Componentes compartilhados da Motion Library ativos neste episódio (ex.: ("titulo_heroi",)):
+MOTION_COMPONENTES_ATIVOS = ()
+
+# Exemplo de importação quando um componente compartilhado estiver ativo:
+# from motion_library.components.titulo_heroi import (
+#     gerar_html_titulo,
+#     animar_titulo,
+# )
 import sys as _sys; _sys.path.insert(0, str(AQUI))
 import ilustra as il
 from types import SimpleNamespace as _NS
@@ -317,20 +355,39 @@ if WEBCAM:
                   f".tampa{{position:absolute;left:{_x}px;top:{_y}px;width:{_w}px;height:{_h}px;background:{FUNDO_GRAVACAO};z-index:1}}")
 else:
     CSS_WEBCAM = ""
+# ---- Componentes compartilhados da Motion Library (inclusão explícita e controlada)
+_COMP_NAME_RE = re.compile(r"^[a-zA-Z0-9_-]+$")
+CSS_MOTION = []
+for _comp in MOTION_COMPONENTES_ATIVOS:
+    if not isinstance(_comp, str) or not _COMP_NAME_RE.match(_comp):
+        raise ValueError(f"Nome de componente da Motion Library inválido: {_comp!r}. Padrão esperado: [a-zA-Z0-9_-]+.")
+    _css_arq = ROOT_EDITOR / "motion_library" / "components" / _comp / f"{_comp}.css"
+    try:
+        _css_arq.resolve().relative_to((ROOT_EDITOR / "motion_library" / "components").resolve())
+    except ValueError:
+        raise ValueError(f"Tentativa de travessia de caminho inválida para o componente: {_comp!r}.")
+    if not _css_arq.is_file():
+        raise FileNotFoundError(f"CSS do componente compartilhado '{_comp}' não encontrado em: {_css_arq}")
+    CSS_MOTION.append(f"\n/* --- motion_library: {_comp} --- */\n" + _css_arq.read_text(encoding="utf-8"))
+
+CSS_MOTION_STR = "".join(CSS_MOTION)
+
 CSS = ((AQUI / "estilo.css").read_text(encoding="utf-8") + (AQUI / "ilustra.css").read_text(encoding="utf-8")
-       + ((AQUI / "cenas.css").read_text(encoding="utf-8") if (AQUI / "cenas.css").exists() else "") + CSS_WEBCAM)
+       + ((AQUI / "cenas.css").read_text(encoding="utf-8") if (AQUI / "cenas.css").exists() else "")
+       + CSS_MOTION_STR + CSS_WEBCAM)
 # ---- o SEU design system: config.json → "marca": {"destaque": "#1d7cf2", "fonte": "Inter"} (ou edite estilo.css/cenas.css)
 _MARCA = CFG.get("marca") or {}
 if _MARCA.get("destaque"): CSS += f":root{{--destaque:{_MARCA['destaque']}}}"
 if _MARCA.get("fonte"): CSS += f'#root{{font-family:"{_MARCA["fonte"]}","Inter",sans-serif}}'   # fonte instalada no sistema ou com @font-face no estilo.css
 
 FONTES = "".join(f'@font-face{{font-family:"Inter";src:url("fonts/inter-{w}.woff2") format("woff2");font-weight:{w};font-style:normal}}' for w in (400, 500, 600, 700, 800))
+_gsap_src = "assets/vendor/gsap.min.js" if (AQUI / "assets/vendor/gsap.min.js").is_file() else "https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"
 html = f'''<!doctype html>
 <html lang="pt-BR" data-resolution="landscape">
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=1920, height=1080" />
-<script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+<script src="{_gsap_src}"></script>
 <style>{FONTES}{CSS}</style>
 </head>
 <body>

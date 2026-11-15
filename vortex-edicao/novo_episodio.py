@@ -115,6 +115,7 @@ def main():
         if dst.exists() and not a.forcar:
             estado["pulados"] += 1
             return
+        dst.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(src, dst)
         estado["novos"] += 1
 
@@ -141,6 +142,9 @@ def main():
         "checa_texto.py", "webcam_fixa.py"
     ]
     for arq in arquivos_modelo:
+        # Se a marca possui versão específica em branding/scripts, preserva para cópia no Passo 3.6
+        if (branding_dir / "scripts" / arq).exists():
+            continue
         src = modelo_dir / arq
         if src.exists():
             copia_arquivo(src, workspace_dir / arq)
@@ -167,6 +171,12 @@ def main():
 
     # 4. Fontes do sistema
     copia_pasta(VORTEX_DIR / "fonts", workspace_dir / "fonts")
+
+    # 4.1 Bibliotecas locais da toolchain (GSAP local para autonomia offline)
+    gsap_central = BASE_EDITOR / "tools" / "hyperframes" / "assets" / "gsap" / "3.14.2" / "gsap.min.js"
+    if gsap_central.is_file():
+        dest_gsap = workspace_dir / "assets" / "vendor" / "gsap.min.js"
+        copia_arquivo(gsap_central, dest_gsap)
 
     # 5. Manifests (só cria se não existir — podem ter sido personalizados)
     if not (workspace_dir / "package.json").exists() or a.forcar:

@@ -52,3 +52,30 @@ projetos/*/episodios/*/workspace/fonts/
 # --- Estado do HyperFrames (gerado a cada render) ---
 .hyperframes/
 **/hyperframes-extract-cache-*/
+
+# --- Dependências Node.js (mantidas no disco, nunca no Git) ---
+node_modules/
+
+# --- IDE local (apenas git.ignoreLimitWarning) ---
+.vscode/
+
+# --- Backups, logs e pacotes compactados locais ---
+*.orig
+*.tmp
+*.bak
+*.log
+docs.zip
+
+# --- Workspaces e rodadas experimentais geradas em episódios (seletivo) ---
+projetos/*/episodios/*/workspace/
+projetos/*/episodios/*/workspace_*/
+projetos/*/episodios/*/fase5_*/
+
+# --- Executáveis pesados (>100 MB, limite GitHub) da toolchain ---
+tools/hyperframes/bin/windows-x64/ffmpeg.exe
+tools/hyperframes/bin/windows-x64/ffprobe.exe
+
+# --- Backups manuais específicos (preservados no disco) ---
+experimentos/video-motion/PLANO_POC_VIDEO_MOTION.md.pre_*
+projetos/dr-gestao/motion-system/CATALOGO_MOTIONS.md.bak_pre_fase5_4
+projetos/dr-gestao/motion-system/_backup_pre_fase4b1/

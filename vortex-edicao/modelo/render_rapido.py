@@ -13,7 +13,7 @@ Uso:
   python3 render_rapido.py -o renders/final.mp4 [--workers 4]
   python3 render_rapido.py --so-trechos        # só renderiza/atualiza o cache dos trechos com motion
 """
-import argparse, hashlib, json, math, os, re, subprocess, sys, time
+import argparse, hashlib, json, math, os, re, shutil, subprocess, sys, time
 from pathlib import Path
 import sys as _stdout_sys
 if hasattr(_stdout_sys.stdout, "reconfigure"):
@@ -22,6 +22,131 @@ if hasattr(_stdout_sys.stdout, "reconfigure"):
 AQUI = Path(__file__).parent
 CACHE = AQUI / "renders" / ".trechos"
 RE_T = re.compile(r'data-start="([\d.]+)"\s+data-duration="([\d.]+)"')
+
+def descobrir_raiz(ponto_partida=__file__):
+    """Localiza a raiz do Drifit Editor subindo a árvore de diretórios."""
+    cur = Path(ponto_partida).resolve()
+    if cur.is_file():
+        cur = cur.parent
+    while True:
+        if (cur / "motion_library").is_dir() and (cur / "vortex-edicao").is_dir():
+            return cur
+        parent = cur.parent
+        if parent == cur:
+            raise RuntimeError(
+                "[Erro] Raiz do Drifit Editor não encontrada. "
+                "Certifique-se de que os diretórios 'motion_library' e 'vortex-edicao' existem na estrutura do projeto."
+            )
+        cur = parent
+
+def resolver_toolchain_local(ponto_partida=__file__):
+    """Descobre e valida as ferramentas locais (Node.js, HyperFrames 0.9.5, FFmpeg/FFprobe)."""
+    raiz = descobrir_raiz(ponto_partida)
+
+    # 1. Localizar Node.js
+    node_bin = shutil.which("node") or shutil.which("node.exe")
+    if not node_bin:
+        raise RuntimeError(
+            "[Erro] Executável do Node.js não foi encontrado no sistema (PATH).\n"
+            "       Instale o Node.js v20+ ou configure o executável no ambiente."
+        )
+
+    # 2. Localizar HyperFrames 0.9.5 local em tools/hyperframes (com suporte a DRIFIT_TOOLS_DIR e fallback experimental)
+    hf_tools_dir = None
+    if "DRIFIT_TOOLS_DIR" in os.environ and Path(os.environ["DRIFIT_TOOLS_DIR"]).is_dir():
+        hf_tools_dir = Path(os.environ["DRIFIT_TOOLS_DIR"])
+    elif (raiz / "tools" / "hyperframes").is_dir():
+        hf_tools_dir = raiz / "tools" / "hyperframes"
+    else:
+        exp_dir = (raiz / "projetos" / "dr-gestao" / "episodios" / "teste-piloto-parte-02" /
+                   "fase5_5_integracao_motion_library" / "fase5_6" / "etapa2_implementacao" /
+                   "candidato" / "tools" / "hyperframes")
+        if exp_dir.is_dir():
+            hf_tools_dir = exp_dir
+        else:
+            hf_tools_dir = raiz / "tools" / "hyperframes"
+
+    hf_mjs = hf_tools_dir / "node_modules" / "hyperframes" / "bin" / "hyperframes.mjs"
+    if not hf_mjs.is_file():
+        raise RuntimeError(
+            f"[Erro] HyperFrames local não encontrado em:\n"
+            f"       {hf_mjs}\n"
+            f"       Execute o provisionamento da toolchain local em 'tools/hyperframes/' antes de renderizar."
+        )
+
+    # Validar versão estrita (0.9.5)
+    r_ver = subprocess.run([node_bin, str(hf_mjs), "--version"], capture_output=True, text=True, errors="replace")
+    versao_encontrada = r_ver.stdout.strip() if r_ver.returncode == 0 else ""
+    if versao_encontrada != "0.9.5":
+        raise RuntimeError(
+            f"[Erro] Versão incompatível do HyperFrames local.\n"
+            f"       Esperada: 0.9.5\n"
+            f"       Encontrada: {versao_encontrada or 'Erro ao executar --version'}\n"
+            f"       Código de saída: {r_ver.returncode}\n"
+            f"       Stderr: {r_ver.stderr.strip()}"
+        )
+
+    # 3. Localizar FFmpeg e FFprobe locais
+    bin_local_dir = None
+    if sys.platform == "win32":
+        candidatos_bin = [
+            hf_tools_dir / "bin" / "windows-x64",
+            hf_tools_dir / "bin",
+            raiz / "bin"
+        ]
+        for c in candidatos_bin:
+            if (c / "ffmpeg.exe").is_file() and (c / "ffprobe.exe").is_file():
+                bin_local_dir = c
+                break
+
+    if not bin_local_dir:
+        # Fallback para sistema global se disponível
+        ffmpeg_global = shutil.which("ffmpeg")
+        ffprobe_global = shutil.which("ffprobe")
+        if ffmpeg_global and ffprobe_global:
+            ffmpeg_bin = Path(ffmpeg_global)
+            ffprobe_bin = Path(ffprobe_global)
+            bin_local_dir = ffmpeg_bin.parent
+        else:
+            raise RuntimeError(
+                f"[Erro] Binários locais do FFmpeg e FFprobe não foram encontrados em:\n"
+                f"       {hf_tools_dir / 'bin' / 'windows-x64'}\n"
+                f"       nem no PATH global do sistema operacional."
+            )
+    else:
+        ffmpeg_bin = bin_local_dir / "ffmpeg.exe"
+        ffprobe_bin = bin_local_dir / "ffprobe.exe"
+
+    # Validar execução de FFmpeg e FFprobe
+    for b_nome, b_path in [("FFmpeg", ffmpeg_bin), ("FFprobe", ffprobe_bin)]:
+        r_b = subprocess.run([str(b_path), "-version"], capture_output=True, text=True, errors="replace")
+        if r_b.returncode != 0:
+            raise RuntimeError(f"[Erro] Falha ao executar {b_nome} local em: {b_path}")
+
+    # 4. Injetar variáveis de ambiente do subprocesso
+    env_exec = os.environ.copy()
+    env_exec["FFMPEG_PATH"] = str(ffmpeg_bin)
+    env_exec["FFPROBE_PATH"] = str(ffprobe_bin)
+    env_exec["PATH"] = str(bin_local_dir) + os.pathsep + env_exec.get("PATH", "")
+    env_exec["HYPERFRAMES_SKIP_SKILLS"] = "1"
+
+    return {
+        "raiz": raiz,
+        "node": node_bin,
+        "hf_mjs": hf_mjs,
+        "ffmpeg": ffmpeg_bin,
+        "ffprobe": ffprobe_bin,
+        "env": env_exec,
+        "bin_dir": bin_local_dir
+    }
+
+# Toolchain resolvida uma única vez na inicialização
+_TOOLCHAIN = None
+def get_toolchain():
+    global _TOOLCHAIN
+    if _TOOLCHAIN is None:
+        _TOOLCHAIN = resolver_toolchain_local()
+    return _TOOLCHAIN
 
 def janelas(p, junta, margem):
     iv = []
@@ -86,12 +211,14 @@ def html_trecho(p, A, B):
         ps = posicoes(l)
         return any(a - 1e-3 <= t <= b + 1e-3 for t in ps) or (ref and any(t <= b + 1e-3 for t in ps))
     js = [l for l in p["js"] if ok(l)]
+    # Priorizar GSAP local no workspace para renderização offline estrita
+    gsap_src = "assets/vendor/gsap.min.js" if (AQUI / "assets/vendor/gsap.min.js").is_file() else "https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"
     return f'''<!doctype html>
 <html lang="pt-BR" data-resolution="landscape">
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=1920, height=1080" />
-<script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+<script src="{gsap_src}"></script>
 <style>{p["estilo"]}</style>
 </head>
 <body>
@@ -113,6 +240,7 @@ trecho.seek(0);
 </html>'''
 
 def renderiza_trechos(p, fr, workers):
+    tc = get_toolchain()
     CACHE.mkdir(parents=True, exist_ok=True)
     # a versão dos arquivos de mídia e fontes entra no hash (trocou a base ou um logo → renderiza de novo)
     assinatura = "".join(f"{f}:{os.path.getmtime(f)}" for f in sorted(map(str, list(AQUI.glob("media/base.mp4")) + list(AQUI.glob("logos/*")) + list(AQUI.glob("fonts/*")))))
@@ -128,19 +256,22 @@ def renderiza_trechos(p, fr, workers):
         tmp = AQUI / f"_trecho_{chave}.html"
         tmp.write_text(h, encoding="utf-8")
         t0 = time.time()
-        r = subprocess.run(["npx.cmd", "-y", "hyperframes", "render", "-c", tmp.name, "-o", str(out), "-w", str(workers), "--crf", "8", "--quiet"],
-                           cwd=AQUI, env={**os.environ, "HYPERFRAMES_SKIP_SKILLS": "1"}, capture_output=True, text=True)
+        # Invocação direta via Node.js sem intermediários sob demanda
+        cmd_hf = [tc["node"], str(tc["hf_mjs"]), "render", "-c", tmp.name, "-o", str(out), "-w", str(workers), "--crf", "8", "--quiet"]
+        r = subprocess.run(cmd_hf, cwd=AQUI, env=tc["env"], capture_output=True, text=True)
         tmp.unlink(missing_ok=True)
         import glob as _g, shutil as _sh, tempfile as _tf   # cache de quadros extraídos: libera o disco a cada trecho
         for d in _g.glob(os.path.join(_tf.gettempdir(), "hyperframes-extract-cache-*")):
             _sh.rmtree(d, ignore_errors=True)
         if r.returncode != 0 or not out.exists():
             sys.exit(f"falhou no trecho {A}-{B}:\n{r.stdout[-2000:]}\n{r.stderr[-2000:]}")
-        n = int(subprocess.run(["ffprobe", "-v", "error", "-count_packets", "-select_streams", "v", "-show_entries", "stream=nb_read_packets", "-of", "csv=p=0", str(out)], capture_output=True, text=True).stdout.strip())
+        n = int(subprocess.run([str(tc["ffprobe"]), "-v", "error", "-count_packets", "-select_streams", "v", "-show_entries", "stream=nb_read_packets", "-of", "csv=p=0", str(out)],
+                               cwd=AQUI, env=tc["env"], capture_output=True, text=True).stdout.strip())
         if n == B - A + 1:
             # duração em float (ex. 13,0667 s × 30 = 392,001): o HyperFrames arredonda pra cima → tira o quadro extra do fim
             aparado = out.with_suffix(".tmp.mp4")
-            subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-i", str(out), "-map", "0", "-frames:v", str(B - A), "-c", "copy", str(aparado)], check=True)
+            subprocess.run([str(tc["ffmpeg"]), "-y", "-loglevel", "error", "-i", str(out), "-map", "0", "-frames:v", str(B - A), "-c", "copy", str(aparado)],
+                           cwd=AQUI, env=tc["env"], check=True)
             aparado.replace(out)
             n = B - A
         if n != B - A:
@@ -150,6 +281,7 @@ def renderiza_trechos(p, fr, workers):
     return arquivos
 
 def mixa_audio(p, saida):
+    tc = get_toolchain()
     ins, fil = [], []
     for k, h in enumerate(p["audio"]):
         src = re.search(r'src="([^"]+)"', h).group(1)
@@ -158,8 +290,8 @@ def mixa_audio(p, saida):
         v = float(re.search(r'data-volume="([\d.]+)"', h).group(1))
         ins += ["-i", str(AQUI / src)]
         ms = round(s * 1000)
-        _pr = subprocess.run(["ffprobe", "-v", "error", "-show_entries", "stream=channels", "-of", "csv=p=0", str(AQUI / src)],
-                             capture_output=True, text=True)
+        _pr = subprocess.run([str(tc["ffprobe"]), "-v", "error", "-show_entries", "stream=channels", "-of", "csv=p=0", str(AQUI / src)],
+                             cwd=AQUI, env=tc["env"], capture_output=True, text=True)
         _canais = _pr.stdout.split()
         if not _canais:
             # sem stream de áudio: antes explodia com IndexError em ".split()[0]"
@@ -171,9 +303,11 @@ def mixa_audio(p, saida):
         fil.append(f"[{k}:a]aresample=48000,{estereo},atrim=0:{d},volume={v},adelay={ms}|{ms},apad,asetpts=N/SR/TB,atrim=0:{p['dur']}[a{k}]")
     n = len(p["audio"])
     fil.append("".join(f"[a{k}]" for k in range(n)) + f"amix=inputs={n}:duration=longest:dropout_transition=0,volume={n}[mix]")
-    subprocess.run(["ffmpeg", "-y", "-loglevel", "error", *ins, "-filter_complex", ";".join(fil), "-map", "[mix]", "-c:a", "pcm_s24le", str(saida)], check=True)
+    subprocess.run([str(tc["ffmpeg"]), "-y", "-loglevel", "error", *ins, "-filter_complex", ";".join(fil), "-map", "[mix]", "-c:a", "pcm_s24le", str(saida)],
+                   cwd=AQUI, env=tc["env"], check=True)
 
 def junta(p, fr, tot, arquivos, saida_video):
+    tc = get_toolchain()
     pecas, cur = [], 0
     for (A, B), f in zip(fr, arquivos):
         if A > cur: pecas.append(("base", cur, A))
@@ -186,18 +320,22 @@ def junta(p, fr, tot, arquivos, saida_video):
         else:
             ins += ["-i", str(pc[3])]; fil.append(f"[{idx}:v]setpts=PTS-STARTPTS[v{k}]"); idx += 1
     fil.append("".join(f"[v{k}]" for k in range(len(pecas))) + f"concat=n={len(pecas)}:v=1:a=0,fps={p['fps']}[v]")
-    subprocess.run(["ffmpeg", "-y", "-loglevel", "error", *ins, "-filter_complex", ";".join(fil), "-map", "[v]",
-                    "-c:v", "libx264", "-preset", "slow", "-crf", "16", "-pix_fmt", "yuv420p", "-movflags", "+faststart", str(saida_video)], check=True)
+    subprocess.run([str(tc["ffmpeg"]), "-y", "-loglevel", "error", *ins, "-filter_complex", ";".join(fil), "-map", "[v]",
+                    "-c:v", "libx264", "-preset", "slow", "-crf", "16", "-pix_fmt", "yuv420p", "-movflags", "+faststart", str(saida_video)],
+                   cwd=AQUI, env=tc["env"], check=True)
     base = sum(pc[2] - pc[1] for pc in pecas if pc[0] == "base")
     print(f"{len(pecas)} peças · {base / tot * 100:.0f}% do vídeo saiu direto da base (sem navegador)")
 
 def master(video, audio, saida):
-    J = subprocess.run(["ffmpeg", "-hide_banner", "-i", str(audio), "-af", "loudnorm=I=-14:TP=-1:LRA=11:print_format=json", "-f", "null", "-"], capture_output=True, text=True).stderr
+    tc = get_toolchain()
+    J = subprocess.run([str(tc["ffmpeg"]), "-hide_banner", "-i", str(audio), "-af", "loudnorm=I=-14:TP=-1:LRA=11:print_format=json", "-f", "null", "-"],
+                       cwd=AQUI, env=tc["env"], capture_output=True, text=True).stderr
     d = json.loads(J[J.rindex("{"):J.rindex("}") + 1])
     af = (f"loudnorm=I=-14:TP=-1:LRA=11:measured_I={d['input_i']}:measured_TP={d['input_tp']}:measured_LRA={d['input_lra']}"
           f":measured_thresh={d['input_thresh']}:offset={d['target_offset']}:linear=true")
-    subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-i", str(video), "-i", str(audio), "-map", "0:v", "-map", "1:a", "-c:v", "copy",
-                    "-af", af, "-c:a", "aac", "-b:a", "320k", "-ar", "48000", "-movflags", "+faststart", str(saida)], check=True)
+    subprocess.run([str(tc["ffmpeg"]), "-y", "-loglevel", "error", "-i", str(video), "-i", str(audio), "-map", "0:v", "-map", "1:a", "-c:v", "copy",
+                    "-af", af, "-c:a", "aac", "-b:a", "320k", "-ar", "48000", "-movflags", "+faststart", str(saida)],
+                   cwd=AQUI, env=tc["env"], check=True)
 
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()
@@ -207,6 +345,10 @@ if __name__ == "__main__":
     ap.add_argument("--margem", type=float, default=0.2)
     ap.add_argument("--so-trechos", action="store_true")
     a = ap.parse_args()
+
+    # Validação prévia da toolchain local (fail-fast)
+    tc = get_toolchain()
+
     t0 = time.time()
     p = json.load(open(AQUI / "partes.json", encoding="utf-8"))
     fr, tot = janelas(p, a.junta, a.margem)
@@ -218,6 +360,8 @@ if __name__ == "__main__":
     vid, aud = AQUI / "renders" / "_video.mp4", AQUI / "renders" / "_audio.wav"
     junta(p, fr, tot, arquivos, vid)
     mixa_audio(p, aud)
-    master(vid, aud, AQUI / a.saida)
+    saida_final = Path(a.saida) if Path(a.saida).is_absolute() else (AQUI / a.saida)
+    saida_final.parent.mkdir(parents=True, exist_ok=True)
+    master(vid, aud, saida_final)
     vid.unlink(); aud.unlink()
-    print(f"Final: {AQUI / a.saida} | {time.time() - t0:.0f} s no total")
+    print(f"Final: {saida_final} | {time.time() - t0:.0f} s no total")
