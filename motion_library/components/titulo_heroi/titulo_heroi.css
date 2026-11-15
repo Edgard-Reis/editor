@@ -1,0 +1,17 @@
+/* ==========================================================================
+   COMPONENTE T10: Título Herói por Letra (Módulo Estrutural Compartilhado)
+   Drifit Editor — Fase 5.1 (Prova de Reutilização)
+   Contém exclusivamente as propriedades estruturais invariantes de animação.
+   Não define font-size, font-weight, cor, sombra, glow ou posicionamento.
+   ========================================================================== */
+
+.th-w {
+  display: inline-block;
+  white-space: nowrap;
+}
+
+.th-l {
+  display: inline-block;
+  opacity: 0;
+  will-change: transform, filter;
+}
