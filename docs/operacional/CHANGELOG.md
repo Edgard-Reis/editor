@@ -11,6 +11,18 @@ O formato deste documento é baseado no [Keep a Changelog](https://keepachangelo
 
 ---
 
+## [1.0.0-mvp] — 19/11/2026
+### Promoção Oficial do MVP do Editor Autônomo para Produção (`D:\Drifit\Editor\`)
+
+#### Adicionado
+- **Núcleo Modular Completo (`core/`):** Promoção validada de `ingest.py`, `analyze.py`, `transcript_review.py`, `semantic_plan.py`, `semantic_planner.py`, `briefing.py`, `edl_builder.py`, `rhythm_engine.py`, `master_lint.py`, `edl_renderer.py`, `shorts_renderer.py`, `brand_bumpers.py`, `pipeline.py`, `video_verify.py`, `component_catalog.py`, `workspace.py` e `cli.py`.
+- **Cenas Inéditas em Tela Cheia (`fullscreen_motion`) & SFX Automático:** Renderização HyperFrames/GSAP em `1920x1080` (Master `16:9`) e `1080x960` (Shorts `9:16`) integrada ao barramento `RobustSoundBus` (`som.py`) com gatilhos reais em `branding/sons/` mixados em `-14 LUFS`.
+- **Vinhetas Multi-Marca Inteligentes (`core/brand_bumpers.py`):** Encerramento automático em 3 níveis (asset pronto em `overlays/`/`vinhetas/`, geração automática via HyperFrames/GSAP + SFX para marcas com logo ou paleta, e *fade-out* limpo de `0,5s` para marcas sem assets) e suporte sob demanda para Intro `16:9`/`9:16`.
+- **Limpeza de Abertura em Cortes `9:16`:** Sanitização automática (`sanitize_short_start_and_words`) para remover resíduos de palavras da frase anterior na entrada e vazamento da frase seguinte no fechamento, mantendo legendas dinâmicas palavra por palavra (`y=1020`).
+- **Governança & Skill Oficial (`.agents/skills/editor-autonomo/SKILL.md`):** Protocolo completo com isolamento estrito entre episódios, Portões Humanos 1 e 2, preservação `ΔHash = 0` do bruto original e `docs/operacional/PROJECT_STATUS.md` atualizado.
+
+---
+
 ## [1.0.0-rc.2] — 11/11/2026
 ### Homologação do Motion Graphics 9:16, Verificação Fonética Regional e Desobstrução Facial
 

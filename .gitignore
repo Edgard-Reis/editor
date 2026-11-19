@@ -40,6 +40,12 @@ Thumbs.db
 EP-00/
 projetos/EP-00/
 arquivo/
+experimentos/
+renders/
+_work_master/
+_work/
+_qa/
+_bumpers/
 projetos/*/episodios/*/brutos/
 projetos/*/episodios/*/renders/
 projetos/*/episodios/*/workspace/media/
@@ -48,6 +54,13 @@ projetos/*/episodios/*/workspace/renders/
 projetos/*/episodios/*/workspace/snap/
 projetos/*/episodios/*/workspace/snap_logos/
 projetos/*/episodios/*/workspace/fonts/
+
+# --- Modelos locais Whisper / ML pesados ---
+models--*/
+*.bin
+*.onnx
+*.safetensors
+*.pt
 
 # --- Estado do HyperFrames (gerado a cada render) ---
 .hyperframes/

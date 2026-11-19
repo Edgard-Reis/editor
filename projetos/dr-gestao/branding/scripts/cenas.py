@@ -25,6 +25,7 @@
 #   "rosto": [x, y]   centro do rosto na câmera cheia, em px de 1920×1080. Meça num quadro com grade.
 #   "marca": {"destaque": "#1d7cf2", "fonte": "Inter"}   cor de destaque e fonte (o seu design system)
 import re as _re
+from pathlib import Path
 DESTAQUE = (CFG.get("marca") or {}).get("destaque", "#1d7cf2")   # cor de destaque da cena branca (config.json → marca)
 
 # ---------- Conexão com o Núcleo de Composição (Fase 2) ----------
@@ -57,13 +58,39 @@ def E(nome, px=96, cls=""):
     return f'<span class="cn-emo {cls}" style="font-size:{px}px">{EMO.get(nome, nome)}</span>'
 
 # ---------- sons (todos do kit sintetizado) ----------
+def _som_existe(nome):
+    """Resolve o WAV em branding/sons/ (ou sons/ relativo ao contexto), preservando compatibilidade."""
+    try:
+        base = Path(AQUI)
+    except Exception:
+        base = Path(str(AQUI))
+    candidatos = [base / "sons" / f"{nome}.wav", base.parent / "sons" / f"{nome}.wav"]
+    # busca em ancestrais por um diretorio 'sons' contendo o wav
+    cur = base
+    for _ in range(8):
+        for cand in (cur / "sons" / f"{nome}.wav", cur / "branding" / "sons" / f"{nome}.wav"):
+            if cand not in candidatos:
+                candidatos.append(cand)
+        if cur.parent == cur:
+            break
+        cur = cur.parent
+    # tenta localizar branding/sons a partir de qualquer ancestral que contenha 'projetos'
+    for cur2 in [base] + list(base.parents):
+        cand = cur2 / "dr-gestao" / "branding" / "sons" / f"{nome}.wav"
+        if cand not in candidatos:
+            candidatos.append(cand)
+        cand = cur2 / "branding" / "sons" / f"{nome}.wav"
+        if cand not in candidatos:
+            candidatos.append(cand)
+    return any(c.exists() for c in candidatos)
+
 def _som(nome, t, vol=.4, dur=None, reserva="clique2", event_id=None, modo="auto"):
     if SOUND_BUS is not None:
         eid = event_id or f"cn_{nome}_{round(t, 2)}"
-        som_arquivo = nome if (AQUI / f"sons/{nome}.wav").exists() else reserva
+        som_arquivo = nome if _som_existe(nome) else reserva
         SOUND_BUS.registrar(eid, som_arquivo, t, vol, dur, origem="cenas", modo=modo)
     else:
-        sfx(nome if (AQUI / f"sons/{nome}.wav").exists() else reserva, t, vol, dur)
+        sfx(nome if _som_existe(nome) else reserva, t, vol, dur)
 
 def check_som(t): _som("check", t - .02, .5, event_id=f"check_{round(t, 2)}")
 

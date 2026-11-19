@@ -15,8 +15,12 @@ Testa:
 """
 
 import math
+import sys
 import unittest
 import unicodedata
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from titulo_heroi import animar_titulo, gerar_html_titulo
 

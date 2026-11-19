@@ -40,18 +40,22 @@ Gravação original completa
 D:\Drifit\Editor\
 ├── README.md                     # Apresentação principal do projeto
 ├── GEMINI.md                     # Regras operacionais e governança de agentes
+├── AGENTS.md                     # Governança unificada para agentes de edição
+├── workspace.json                # Configuração raiz do workspace e custódia
+├── .agents/skills/               # Skills operacionais (editor-autonomo, dr-gestao)
+├── core/                         # Motor unificado MVP (ingest, analyze, EDL, HyperFrames, bumpers, shorts, QA)
 ├── criar_projeto.py              # Atalho -> vortex-edicao/criar_projeto.py (cria marca)
 ├── novo_episodio.py              # Atalho -> vortex-edicao/novo_episodio.py (cria episódio)
 │
 ├── vortex-edicao/                # Motor audiovisual local (transcrição, corte, build, render)
 │   ├── transcrever.py            # Transcrição local (Faster-Whisper / Whisper)
 │   ├── cortar.py                 # Remoção de erros e pausas
-│   ├── modelo/                   # build.py, cenas.py, ilustra.py, render_rapido.py
+│   ├── modelo/                   # build.py, cenas.py, ilustra.py, checa_texto.py, render_rapido.py
 │   ├── tests/                    # Suíte base (run_all.py)
 │   ├── requirements.txt          # Dependências Python
 │   └── .env.exemplo              # Modelo opcional de variáveis de ambiente
 │
-├── motion_library/               # Biblioteca reutilizável de Motion Graphics (ex.: titulo_heroi T10)
+├── motion_library/               # Biblioteca de Motion Graphics (titulo_heroi T10, lower_third, broll, sound_design)
 ├── tools/
 │   ├── COMPATIBILITY_MATRIX.md   # Matriz de versões homologadas da toolchain
 │   └── hyperframes/              # Manifestos HyperFrames 0.9.5, GSAP 3.14.2 e toolchain local
@@ -138,14 +142,14 @@ python -m pytest -v projetos\dr-gestao\branding\scripts\test_nucleo.py
 
 | Frente | Estado | Observação |
 |---|---|---|
-| Motor base (`vortex-edicao/`) e presets Dr. Gestão | **Implementado** | Scripts de ingestão, transcrição, corte, `cenas.py`, `estagio.py`, `som.py` e renderização local ativos. |
-| Biblioteca de Motion Graphics (`motion_library/`) | **Parcial** | Componente `titulo_heroi` (`T10`) implementado e testado (`16/16`); demais componentes em consolidação. |
-| Fluxo unificado Master 16:9 → Aprovação → 9:16 e adaptador de IA agnóstico | **Em desenvolvimento (Sandbox)** | Arquitetura modular (`Workspace` / `Brand Profile` / `Editing Project`) e adaptador local CLI/MCP em evolução em sandbox antes de promoção para este repositório. |
+| Motor unificado MVP (`core/` + `.agents/skills/editor-autonomo/`) | **Promovido (`v1.0.0-mvp`)** | Ingestão `ΔHash=0`, Whisper CPU INT8 local, Briefing/Portão 1, EDL, `fullscreen_motion` (GSAP/HyperFrames), `RobustSoundBus` SFX (`-14 LUFS`), vinhetas multi-marca (`core/brand_bumpers.py`) e cortes `9:16` pós-aprovação (Portão 2) ativos em produção. |
+| Motor base (`vortex-edicao/`) e presets Dr. Gestão | **Implementado** | Scripts de ingestão, transcrição, corte, `cenas.py`, `estagio.py`, `som.py` e `render_rapido.py` (`executar_render`) ativos. |
+| Biblioteca de Motion Graphics (`motion_library/`) | **Ativo no MVP** | `titulo_heroi` (`T10`), `lower_third`, `broll_industrial`, `sound_design_sync` e cenas inéditas `fullscreen_motion` (`1920x1080` / `1080x1920`). |
 | Bootstrap automatizado de FFmpeg/FFprobe | **Planejado** | Binários documentados no manifesto, sem instalador automático ainda. |
 
 ### Próximas etapas
-1. Corrigir a resolução de caminhos de áudio em `test_integracao_cenas.py` / `cenas.py` e adicionar script de bootstrap/verificação da toolchain FFmpeg.
-2. Promover para o repositório principal, após homologação, a arquitetura modular unificada (`Workspace`, `Brand Profile`, `Editing Project`), o fluxo ponta a ponta `Master 16:9 → Aprovação → Derivados 9:16` e o adaptador local de IA agnóstico.
+1. Expansão incremental de novos perfis de marca com isolamento nativo e reaproveitamento automático de vinhetas em `overlays/`.
+2. Empacotamento e script de bootstrap automatizado da toolchain local (FFmpeg/FFprobe + Whisper).
 
 ---
 

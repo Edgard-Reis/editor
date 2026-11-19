@@ -1,0 +1,16 @@
+{
+  "schema_version": "1.0.0",
+  "workspace_root": "D:/Drifit/Editor",
+  "paths": {
+    "projetos_dir": "projetos",
+    "vortex_dir": "vortex-edicao"
+  },
+  "custody": {
+    "originals_read_only": true,
+    "versioned_outputs": true,
+    "require_all_inputs_in_manifest": true,
+    "frame_tolerance": 1
+  },
+  "created_at": "2026-11-15T00:00:00+00:00",
+  "updated_at": "2026-11-19T18:46:40+00:00"
+}

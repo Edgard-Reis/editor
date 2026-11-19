@@ -47,5 +47,12 @@
     },
     "lexicon_transcricao": "Dr. Gestão, gestão financeira, negócios, clínica, médicos, saúde, métricas, faturamento, DRE, lucratividade, processos, precificação, pacientes, equipe, consultoria."
   },
+  "vinhetas": {
+    "auto_outro": true,
+    "auto_intro": false,
+    "outro_16x9": "vinhetas/Logo-Animada.mp4",
+    "outro_9x16": "overlays/outro_drgestao_shorts_30fps.mp4",
+    "intro_16x9": "vinhetas/Intro-Dr-Gestao.mp4"
+  },
   "_ajuda": "webcam: se a gravação é TELA + webcam num canto (ex.: OBS), troque por {\"x\":1467,\"y\":324,\"w\":453,\"h\":726} (px em 1920x1080); o zoom mantém a câmera parada por cima. fundo_gravacao = cor atrás da webcam. trechos_tela = [[ini, fim], ...] em segundos do vídeo cortado em que a tela aparece (null = o vídeo todo). rosto = centro do rosto na câmera cheia (px em 1920x1080): o bate() do kit de cenas dá zoom em volta dele, sem mexer o rosto. marca = o seu design system: cor de destaque das cenas e fonte (as cores e tamanhos finos ficam em estilo.css e cenas.css)."
 }

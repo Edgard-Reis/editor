@@ -1,0 +1,10 @@
+.lower-third {
+  position: absolute;
+  padding: 12px 16px;
+  border-radius: 8px;
+  background: var(--lt-bg, #0a0a0a);
+  color: var(--lt-text, #ffffff);
+  font-family: var(--lt-font, Inter);
+}
+.lower-third .lt-name { font-weight: 700; }
+.lower-third .lt-cred { color: var(--lt-secondary, #8e7de5); }
